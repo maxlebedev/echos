@@ -1,10 +1,13 @@
 from collections import defaultdict
 
 EntityId = int
+
 ComponentId = int
-ArchetypeId = int
 Type = list[ComponentId]
-ArchetypeSet = set[ArchetypeId]
+
+ArchetypeId = int
+ArchetypeRecord = int
+ArchetypeDict = dict[ArchetypeId, ArchetypeRecord]
 
 
 class Archetype:
@@ -15,14 +18,15 @@ class Archetype:
         self.id = id(self)
         self.type = [a for a in args]
         for arg in args:
-            State.component_index[arg].add(self.id)
+            arch_dict = State.component_index[arg]
+            arch_dict[self.id] = len(arch_dict)
 
 
 # TODO: class Index. Index.archetype
 class State:
     entity_index: dict[EntityId, Archetype] = {}
     archetype_index: dict[Type, Archetype] = {}
-    component_index: dict[ComponentId, ArchetypeSet] = defaultdict(set)
+    component_index: dict[ComponentId, ArchetypeDict] = defaultdict(dict)
 
 
 def has_component(entity: EntityId, component: ComponentId) -> bool:
@@ -30,10 +34,12 @@ def has_component(entity: EntityId, component: ComponentId) -> bool:
     return archetype.id in State.component_index[component]
 
 
-def has_components(entity: EntityId, *components: ComponentId) -> bool:
-    archetype_sets = [State.component_index[cmp] for cmp in components]
-    archetypes = set.intersection(*archetype_sets)
-    return State.entity_index[entity].id in archetypes
+def get_component(entity: EntityId, component: ComponentId) -> int:
+    # TODO: returning component ID bc that's all we have rn
+    arch_dict = State.component_index[component]
+    arch = State.entity_index[entity]
+    column = arch_dict[arch.id]
+    return arch.type[column]
 
 
 def test_component():
@@ -48,8 +54,7 @@ def test_component():
     assert has_component(ent1, hp)
     assert not has_component(ent1, vis)
 
-    assert has_components(ent1, pos, hp)
-    assert not has_components(ent1, pos, vis)
+    assert get_component(ent1, pos) == pos
 
 
 def main():

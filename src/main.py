@@ -1,27 +1,39 @@
+from collections import defaultdict
 
 EntityId = int
 ComponentId = int
+ArchetypeId = int
 Type = list[ComponentId]
+ArchetypeSet = set[ArchetypeId]
 
 
 class Archetype:
+    id: ArchetypeId
     type: Type
-    type_set: set[ComponentId]
 
     def __init__(self, *args):
+        self.id = id(self)
         self.type = [a for a in args]
-        self.type_set = set(self.type)
+        for arg in args:
+            State.component_index[arg].add(self.id)
 
 
 # TODO: class Index. Index.archetype
 class State:
     entity_index: dict[EntityId, Archetype] = {}
     archetype_index: dict[Type, Archetype] = {}
+    component_index: dict[ComponentId, ArchetypeSet] = defaultdict(set)
 
 
 def has_component(entity: EntityId, component: ComponentId) -> bool:
     archetype = State.entity_index[entity]
-    return component in archetype.type_set
+    return archetype.id in State.component_index[component]
+
+
+def has_components(entity: EntityId, *components: ComponentId) -> bool:
+    archetype_sets = [State.component_index[cmp] for cmp in components]
+    archetypes = set.intersection(*archetype_sets)
+    return State.entity_index[entity].id in archetypes
 
 
 def test_component():
@@ -35,6 +47,9 @@ def test_component():
     assert has_component(ent1, pos)
     assert has_component(ent1, hp)
     assert not has_component(ent1, vis)
+
+    assert has_components(ent1, pos, hp)
+    assert not has_components(ent1, pos, vis)
 
 
 def main():
